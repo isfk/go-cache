@@ -7,26 +7,35 @@ import (
 	"time"
 )
 
-// Cache Cache
-type Cache struct {
-	Client *cache.Codec
+// Client Client
+type Client struct {
+	baseClient *cache.Codec
 	tags   []string
 }
 
+// NewClient NewClient
+func NewClient() *Client {
+	GetCodec()
+
+	return &Client{
+		baseClient: Driver,
+	}
+}
+
 // Handler .Handler()
-func (c *Cache) Handler() *cache.Codec {
+func (c *Client) Handler() *cache.Codec {
 	GetCodec()
 	return Driver
 }
 
 // Tag .Tag()
-func (c *Cache) Tag(tag ...string) *Cache {
+func (c *Client) Tag(tag ...string) *Client {
 	c.tags = tag
 	return c
 }
 
 // Put .Tag().Put()
-func (c *Cache) Put(key string, val interface{}, expire int64) error {
+func (c *Client) Put(key string, val interface{}, expire int64) error {
 	GetCodec()
 
 	for _, v := range c.tags {
@@ -55,7 +64,7 @@ func (c *Cache) Put(key string, val interface{}, expire int64) error {
 }
 
 // Clear .Tag().Clear()
-func (c *Cache) Clear(key string) error {
+func (c *Client) Clear(key string) error {
 	GetCodec()
 
 	err := Driver.Delete(key)
