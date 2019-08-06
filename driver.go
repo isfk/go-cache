@@ -13,9 +13,9 @@ var Driver *cache.Codec
 func GetCodec() {
 	ring := redis.NewRing(&redis.RingOptions{
 		Addrs: map[string]string{
-			"redis":   ":6379",
-			"server2": ":6380",
+			"server1": "redis:6379",
 		},
+		Password: "sdfsdf",
 	})
 
 	codec := &cache.Codec{
