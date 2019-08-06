@@ -10,20 +10,16 @@ import (
 
 // Client Client
 type Client struct {
-	baseClient *redis.Client
-	tags       []string
+	RedisClient *redis.Client
+	tags        []string
 }
 
 // RedisDriver RedisDriver
 var RedisDriver *redis.Client
 
 // NewClient NewClient
-func NewClient() *Client {
-	client := redis.NewClient(&redis.Options{
-		Addr:     "redis:6379",
-		Password: "sdfsdf", // no password set
-		DB:       0,        // use default DB
-	})
+func NewClient(conf redis.Options) *Client {
+	client := redis.NewClient(&conf)
 
 	pong, err := client.Ping().Result()
 	if err != nil {
@@ -35,7 +31,7 @@ func NewClient() *Client {
 	RedisDriver = client
 
 	return &Client{
-		baseClient: RedisDriver,
+		RedisClient: RedisDriver,
 	}
 }
 
@@ -46,24 +42,26 @@ func (c *Client) Tag(tag ...string) *Client {
 }
 
 // Put .Tag().Put()
-func (c *Client) Put(key string, val interface{}, expire int64) error {
+func (c *Client) Put(key string, val interface{}, expire time.Duration) error {
+	// sadd member
 	for _, v := range c.tags {
 		err := RedisDriver.SAdd(fmt.Sprintf("tag:%v", fmt.Sprintf("%x", md5.Sum([]byte(v)))), key).Err()
 		if err != nil {
-			fmt.Println("err:", err)
+			fmt.Println("RedisDriver.SAdd err:", err)
 		}
 	}
 
+	// json
 	value, err := json.Marshal(val)
 	if err != nil {
 		fmt.Println("err:", err)
 		return err
 	}
 
-	err = RedisDriver.Set(fmt.Sprintf("key:%v", key), string(value), time.Hour).Err()
-
+	// set key:value
+	err = RedisDriver.Set(key, string(value), expire).Err()
 	if err != nil {
-		fmt.Println("err:", err)
+		fmt.Println("RedisDriver.Set err:", err)
 		return err
 	}
 
@@ -79,21 +77,23 @@ func (c *Client) Clear() error {
 		// get members
 		members, err := RedisDriver.SMembers(key).Result()
 		if err != nil {
-			fmt.Println("err:", err)
+			fmt.Println("RedisDriver.SMembers err:", err)
 			return err
 		}
 
-		// delete members
-		err = RedisDriver.Del(members...).Err()
-		if err != nil {
-			fmt.Println("err:", err)
-			return err
+		if len(members) > 0 {
+			// delete members
+			err = RedisDriver.Del(members...).Err()
+			if err != nil {
+				fmt.Println("RedisDriver.Del err:", err)
+				return err
+			}
 		}
 
 		// delete tag
 		err = RedisDriver.Del(key).Err()
 		if err != nil {
-			fmt.Println("err:", err)
+			fmt.Println("RedisDriver.Del err:", err)
 			return err
 		}
 	}
