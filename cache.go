@@ -3,29 +3,23 @@ package cache
 import (
 	"crypto/md5"
 	"fmt"
-	"github.com/go-redis/cache"
+	"github.com/go-redis/redis"
 	"time"
 )
 
 // Client Client
 type Client struct {
-	baseClient *cache.Codec
-	tags   []string
+	baseClient *redis.Client
+	tags       []string
 }
 
 // NewClient NewClient
 func NewClient() *Client {
-	GetCodec()
+	InitRedis()
 
 	return &Client{
-		baseClient: Driver,
+		baseClient: RedisDriver,
 	}
-}
-
-// Handler .Handler()
-func (c *Client) Handler() *cache.Codec {
-	GetCodec()
-	return Driver
 }
 
 // Tag .Tag()
@@ -36,25 +30,17 @@ func (c *Client) Tag(tag ...string) *Client {
 
 // Put .Tag().Put()
 func (c *Client) Put(key string, val interface{}, expire int64) error {
-	GetCodec()
+	InitRedis()
 
 	for _, v := range c.tags {
-		err := Driver.Set(&cache.Item{
-			Key:        key,
-			Object:     fmt.Sprintf("tag:%v", fmt.Sprintf("%x", md5.Sum([]byte(v)))),
-			Expiration: time.Hour,
-		})
+		err := RedisDriver.SAdd(key, fmt.Sprintf("tag:%v", fmt.Sprintf("%x", md5.Sum([]byte(v))))).Err()
 
 		if err != nil {
 			fmt.Println("err:", err)
 		}
 	}
 
-	err := Driver.Set(&cache.Item{
-		Key:        key,
-		Object:     val,
-		Expiration: time.Hour,
-	})
+	err := RedisDriver.Set(key, val, time.Hour).Err()
 
 	if err != nil {
 		fmt.Println("err:", err)
@@ -65,13 +51,12 @@ func (c *Client) Put(key string, val interface{}, expire int64) error {
 
 // Clear .Tag().Clear()
 func (c *Client) Clear(key string) error {
-	GetCodec()
+	InitRedis()
 
-	err := Driver.Delete(key)
+	err := RedisDriver.Del(key).Err()
 
 	if err != nil {
-		return err
+		fmt.Println("err:", err)
 	}
-
 	return nil
 }

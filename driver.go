@@ -1,32 +1,26 @@
 package cache
 
 import (
-	"github.com/go-redis/cache"
+	"fmt"
+
 	"github.com/go-redis/redis"
-	"github.com/vmihailenco/msgpack"
 )
 
-// Driver Driver
-var Driver *cache.Codec
+// RedisDriver RedisDriver
+var RedisDriver *redis.Client
 
-// GetCodec GetCodec
-func GetCodec() {
-	ring := redis.NewRing(&redis.RingOptions{
-		Addrs: map[string]string{
-			"server1": "redis:6379",
-		},
-		Password: "sdfsdf",
+// InitRedis InitRedis
+func InitRedis() {
+	client := redis.NewClient(&redis.Options{
+		Addr:     "redis:6379",
+		Password: "sdfsdf", // no password set
+		DB:       0,        // use default DB
 	})
 
-	codec := &cache.Codec{
-		Redis: ring,
-
-		Marshal: func(v interface{}) ([]byte, error) {
-			return msgpack.Marshal(v)
-		},
-		Unmarshal: func(b []byte, v interface{}) error {
-			return msgpack.Unmarshal(b, v)
-		},
+	pong, err := client.Ping().Result()
+	if err != nil {
+		panic(err)
 	}
-	Driver = codec
+	fmt.Println("redis pong: ", pong)
+	RedisDriver = client
 }
