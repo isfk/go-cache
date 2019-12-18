@@ -4,7 +4,7 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
-	"github.com/go-redis/redis"
+	"github.com/go-redis/redis/v7"
 	"time"
 )
 
