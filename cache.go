@@ -11,25 +11,23 @@ import (
 
 // Client Client
 type Client struct {
-	RedisClient *redis.Client
+	RedisClient *redis.Ring
 	tags        []string
 }
 
 // RedisDriver RedisDriver
-var RedisDriver *redis.Client
+var RedisDriver *redis.Ring
 
 // NewClient NewClient
-func NewClient(ctx context.Context, conf redis.Options) *Client {
-	client := redis.NewClient(&conf)
-
-	pong, err := client.Ping(ctx).Result()
+func NewClient(ctx context.Context, red *redis.Ring) *Client {
+	pong, err := red.Ping(ctx).Result()
 	if err != nil {
 		panic(err)
 	}
 
 	fmt.Println("redis pong: ", pong)
 
-	RedisDriver = client
+	RedisDriver = red
 
 	return &Client{
 		RedisClient: RedisDriver,
