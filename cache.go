@@ -19,15 +19,15 @@ type Client struct {
 var RedisDriver *redis.Ring
 
 // NewClient NewClient
-func NewClient(ctx context.Context, red *redis.Ring) *Client {
-	pong, err := red.Ping(ctx).Result()
+func NewClient(ctx context.Context, ring *redis.Ring) *Client {
+	pong, err := ring.Ping(ctx).Result()
 	if err != nil {
 		panic(err)
 	}
 
 	fmt.Println("redis pong: ", pong)
 
-	RedisDriver = red
+	RedisDriver = ring
 
 	return &Client{
 		RedisClient: RedisDriver,
