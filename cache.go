@@ -11,26 +11,46 @@ import (
 
 // Client Client
 type Client struct {
-	RedisClient *redis.Ring
-	tags        []string
+	RedisClient        *redis.Client
+	RedisClusterClient *redis.ClusterClient
+	tags               []string
 }
 
 // RedisDriver RedisDriver
-var RedisDriver *redis.Ring
+var RedisDriver *redis.Client
+
+// RedisClusterDriver RedisClusterDriver
+var RedisClusterDriver *redis.ClusterClient
 
 // NewClient NewClient
-func NewClient(ctx context.Context, ring *redis.Ring) *Client {
-	pong, err := ring.Ping(ctx).Result()
+func NewClient(ctx context.Context, client *redis.Client) *Client {
+	pong, err := client.Ping(ctx).Result()
 	if err != nil {
 		panic(err)
 	}
 
 	fmt.Println("redis pong: ", pong)
 
-	RedisDriver = ring
+	RedisDriver = client
 
 	return &Client{
 		RedisClient: RedisDriver,
+	}
+}
+
+// NewClusterClient NewClusterClient
+func NewClusterClient(ctx context.Context, client *redis.ClusterClient) *Client {
+	pong, err := client.Ping(ctx).Result()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("redis pong: ", pong)
+
+	RedisClusterDriver = client
+
+	return &Client{
+		RedisClusterClient: RedisClusterDriver,
 	}
 }
 
