@@ -1,10 +1,11 @@
 package cache
 
 import (
+	"context"
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
-	"github.com/go-redis/redis/v7"
+	"github.com/go-redis/redis/v8"
 	"time"
 )
 
@@ -18,10 +19,10 @@ type Client struct {
 var RedisDriver *redis.Client
 
 // NewClient NewClient
-func NewClient(conf redis.Options) *Client {
+func NewClient(ctx context.Context, conf redis.Options) *Client {
 	client := redis.NewClient(&conf)
 
-	pong, err := client.Ping().Result()
+	pong, err := client.Ping(ctx).Result()
 	if err != nil {
 		panic(err)
 	}
@@ -42,24 +43,21 @@ func (c *Client) Tag(tag ...string) *Client {
 }
 
 // Put .Tag().Put()
-func (c *Client) Put(key string, val interface{}, expire time.Duration) error {
-	// sadd member
+func (c *Client) Put(ctx context.Context, key string, val interface{}, expire time.Duration) error {
 	for _, v := range c.tags {
-		err := RedisDriver.SAdd(fmt.Sprintf("tag:%v", fmt.Sprintf("%x", md5.Sum([]byte(v)))), key).Err()
+		err := RedisDriver.SAdd(ctx, fmt.Sprintf("tag:%v", fmt.Sprintf("%x", md5.Sum([]byte(v)))), key).Err()
 		if err != nil {
 			fmt.Println("RedisDriver.SAdd err:", err)
 		}
 	}
 
-	// json
 	value, err := json.Marshal(val)
 	if err != nil {
 		fmt.Println("err:", err)
 		return err
 	}
 
-	// set key:value
-	err = RedisDriver.Set(key, string(value), expire).Err()
+	err = RedisDriver.Set(ctx, key, string(value), expire).Err()
 	if err != nil {
 		fmt.Println("RedisDriver.Set err:", err)
 		return err
@@ -68,30 +66,43 @@ func (c *Client) Put(key string, val interface{}, expire time.Duration) error {
 	return nil
 }
 
+// Clear .Tag().Get()
+func (c *Client) Get(ctx context.Context, key string, val interface{}) (interface{}, error) {
+	jsonStr, err := RedisDriver.Get(ctx, key).Result()
+	if err != nil {
+		fmt.Println("RedisDriver.Get err:", err)
+		return nil, err
+	}
+	err = json.Unmarshal([]byte(jsonStr), &val)
+
+	if err != nil {
+		fmt.Println("json.Unmarshal err:", err)
+		return nil, err
+	}
+
+	return val, nil
+}
+
 // Clear .Tag().Clear()
-func (c *Client) Clear() error {
+func (c *Client) Clear(ctx context.Context) error {
 	for _, val := range c.tags {
-		// get key
 		key := fmt.Sprintf("tag:%v", fmt.Sprintf("%x", md5.Sum([]byte(val))))
 
-		// get members
-		members, err := RedisDriver.SMembers(key).Result()
+		members, err := RedisDriver.SMembers(ctx, key).Result()
 		if err != nil {
 			fmt.Println("RedisDriver.SMembers err:", err)
 			return err
 		}
 
 		if len(members) > 0 {
-			// delete members
-			err = RedisDriver.Del(members...).Err()
+			err = RedisDriver.Del(ctx, members...).Err()
 			if err != nil {
 				fmt.Println("RedisDriver.Del err:", err)
 				return err
 			}
 		}
 
-		// delete tag
-		err = RedisDriver.Del(key).Err()
+		err = RedisDriver.Del(ctx, key).Err()
 		if err != nil {
 			fmt.Println("RedisDriver.Del err:", err)
 			return err
