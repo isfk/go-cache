@@ -88,6 +88,9 @@ func (c *Client) Put(ctx context.Context, key string, val interface{}, expire ti
 func (c *Client) Get(ctx context.Context, key string, val interface{}) error {
 	jsonStr, err := RedisDriver.Get(ctx, key).Result()
 	if err != nil {
+		if err == redis.Nil {
+			return nil
+		}
 		fmt.Println("RedisDriver.Get err:", err)
 		return err
 	}
