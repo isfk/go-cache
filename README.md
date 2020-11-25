@@ -1,57 +1,51 @@
 # cache
-go cache based on go-redis
+cache based on go-redis
 
 ## Installation
 
 Install:
 ```bash
-go get -u github.com/go-cache/cache
+go get -u github.com/go-cache/cache/v2
 ```
 Import:
 ```bash
-import "github.com/go-cache/cache"
+import "github.com/go-cache/cache/v2"
 ```
 
 ## QuickStart
 
 ### Init with `cache.NewClient(conf)`
-```gotemplate
-package model
-
-import (
-	"github.com/go-cache/cache"
-	"github.com/go-redis/redis/v7"
-)
-
-// CacheDriver CacheDriver
-var CacheDriver *cache.Client
-
-// InitCache InitCache
-func InitCache() {
-	conf := redis.Options{
-		Addr: "redis:6379",
-		Password: "sdfsdf",
-	}
-	CacheDriver = cache.NewClient(conf)
-}
-```
 
 ```gotemplate
-InitCache()
+rdb := redisV8.NewClient(&redisV8.Options{
+    Addr:     redis.StdRedisConfig("main").Addr,
+    Password: redis.StdRedisConfig("main").Password, // no password set
+    DB:       redis.StdRedisConfig("main").DB,
+})
+
+CacheModel = cache.NewClient(context.Background(), rdb)
 ```
 
 ### Command
-All redis command check: https://godoc.org/github.com/go-redis/redis
+
+- use `Tag` & `Put` & `Get`
+
+`Put` is the same as `Set`, but just with `Tag` together.
+
 ```gotemplate
-CacheDriver.RedisClient.Set("key", "value", time.Hour).Err()
-CacheDriver.RedisClient.Get("key").Result()
-CacheDriver.RedisClient.command()...
+CacheModel.Tag("user_all", "user_list").Put("user_id:1", &proto.User{Id: 1, Nickname: "111"}, time.Hour)
+CacheModel.Tag("user_all").Put("user_id:2", &proto.User{Id: 2, Nickname: "222"}, time.Hour)
+CacheModel.Get("user_id:2")
+CacheModel.Tag("user_list").Clear()
 ```
 
-### use `Tag` & `Put`
-`Put` is the same as `Set`, but just with `Tag` together.
+- use redis
+
+All redis command check: https://godoc.org/github.com/go-redis/redis
+
 ```gotemplate
-CacheDriver.Tag("user_all", "user_list").Put("user_id:1", &proto.User{Id: 1, Nickname: "111"}, time.Hour)
-CacheDriver.Tag("user_all").Put("user_id:2", &proto.User{Id: 2, Nickname: "222"}, time.Hour)
-CacheDriver.Tag("user_list").Clear()
+CacheModel.RedisClient.Set("key", "value", time.Hour).Err()
+CacheModel.RedisClient.Get("key").Result()
+CacheModel.RedisClient.command()...
 ```
+
