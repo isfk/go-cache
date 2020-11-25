@@ -64,21 +64,21 @@ func (c *Client) Put(ctx context.Context, key string, val interface{}, expire ti
 	return nil
 }
 
-// Clear .Tag().Get()
-func (c *Client) Get(ctx context.Context, key string, val interface{}) (interface{}, error) {
+// Get .Get()
+func (c *Client) Get(ctx context.Context, key string, val interface{}) error {
 	jsonStr, err := RedisDriver.Get(ctx, key).Result()
 	if err != nil {
 		fmt.Println("RedisDriver.Get err:", err)
-		return nil, err
+		return err
 	}
 	err = json.Unmarshal([]byte(jsonStr), &val)
 
 	if err != nil {
 		fmt.Println("json.Unmarshal err:", err)
-		return nil, err
+		return err
 	}
 
-	return val, nil
+	return nil
 }
 
 // Clear .Tag().Clear()
