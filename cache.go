@@ -2,11 +2,11 @@ package cache
 
 import (
 	"context"
-	"crypto/md5"
 	"encoding/json"
 	"fmt"
-	"github.com/go-redis/redis/v8"
 	"time"
+
+	"github.com/go-redis/redis/v8"
 )
 
 // Client Client
@@ -63,7 +63,7 @@ func (c *Client) Tag(tag ...string) *Client {
 // Put .Tag().Put()
 func (c *Client) Put(ctx context.Context, key string, val interface{}, expire time.Duration) error {
 	for _, v := range c.tags {
-		err := RedisDriver.SAdd(ctx, fmt.Sprintf("tag:%v", fmt.Sprintf("%x", md5.Sum([]byte(v)))), key).Err()
+		err := RedisDriver.SAdd(ctx, fmt.Sprintf("tag:%v", fmt.Sprintf("%s", v)), key).Err()
 		if err != nil {
 			fmt.Println("RedisDriver.SAdd err:", err)
 		}
@@ -107,7 +107,7 @@ func (c *Client) Get(ctx context.Context, key string, val interface{}) error {
 // Clear .Tag().Clear()
 func (c *Client) Clear(ctx context.Context) error {
 	for _, val := range c.tags {
-		key := fmt.Sprintf("tag:%v", fmt.Sprintf("%x", md5.Sum([]byte(val))))
+		key := fmt.Sprintf("tag:%v", fmt.Sprintf("%x", val))
 
 		members, err := RedisDriver.SMembers(ctx, key).Result()
 		if err != nil {
