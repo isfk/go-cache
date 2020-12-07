@@ -28,15 +28,15 @@ CacheModel = cache.NewClient(context.Background(), rdb)
 
 ### Command
 
-- use `Tag` & `Put` & `Get`
+- use `Tag` & `Set` & `Get`
 
-`Put` is the same as `Set`, but just with `Tag` together.
+`Set` is the same as `Set`, but just with `Tag` together.
 
 ```gotemplate
-CacheModel.Tag("user_all", "user_list").Put("user_id:1", &proto.User{Id: 1, Nickname: "111"}, time.Hour)
-CacheModel.Tag("user_all").Put("user_id:2", &proto.User{Id: 2, Nickname: "222"}, time.Hour)
+CacheModel.Tag("user_all", "user_list").Set("user_id:1", &proto.User{Id: 1, Nickname: "111"}, time.Hour)
+CacheModel.Tag("user_all").Set("user_id:2", &proto.User{Id: 2, Nickname: "222"}, time.Hour)
 CacheModel.Get("user_id:2")
-CacheModel.Tag("user_list").Clear()
+CacheModel.Tag("user_list").Flush()
 ```
 
 - use redis
