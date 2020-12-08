@@ -63,7 +63,7 @@ func (c *Client) Tag(tag ...string) *Client {
 // Set .Tag().Set()
 func (c *Client) Set(ctx context.Context, key string, val interface{}, expire time.Duration) error {
 	for _, v := range c.tags {
-		err := RedisDriver.SAdd(ctx, fmt.Sprintf("tag:%v", fmt.Sprintf("%s", v)), key).Err()
+		err := RedisDriver.SAdd(ctx, fmt.Sprintf("tag:%v", v), key).Err()
 		if err != nil {
 			fmt.Println("RedisDriver.SAdd err:", err)
 		}
@@ -107,7 +107,7 @@ func (c *Client) Get(ctx context.Context, key string, val interface{}) error {
 // Flush .Tag().Flush()
 func (c *Client) Flush(ctx context.Context) error {
 	for _, val := range c.tags {
-		key := fmt.Sprintf("tag:%v", fmt.Sprintf("%x", val))
+		key := fmt.Sprintf("tag:%v", val)
 
 		members, err := RedisDriver.SMembers(ctx, key).Result()
 		if err != nil {
