@@ -7,13 +7,13 @@ cache based on go-redis
 Install:
 
 ```bash
-go get -u github.com/go-cache/cache/v2
+go get -u github.com/go-cache/cache/v3
 ```
 
 Import:
 
 ```bash
-import "github.com/go-cache/cache/v2"
+import "github.com/go-cache/cache/v3"
 ```
 
 ## QuickStart
