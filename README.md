@@ -1,29 +1,33 @@
 # cache
+
 cache based on go-redis
 
 ## Installation
 
 Install:
+
 ```bash
 go get -u github.com/go-cache/cache/v2
 ```
+
 Import:
+
 ```bash
 import "github.com/go-cache/cache/v2"
 ```
 
 ## QuickStart
 
-### Init with `cache.NewClient(conf)`
+### Init with `cache.New(conf)`
 
 ```gotemplate
-rdb := redisV8.NewClient(&redisV8.Options{
+rdb := redisV9.NewClient(&redisV9.Options{
     Addr:     redis.StdRedisConfig("main").Addr,
     Password: redis.StdRedisConfig("main").Password, // no password set
     DB:       redis.StdRedisConfig("main").DB,
 })
 
-CacheModel = cache.NewClient(context.Background(), rdb)
+c = cache.New(context.Background(), rdb, cache.WithPrefix("test"), cache.WithExpired(600*time.Second))
 ```
 
 ### Command
@@ -32,11 +36,14 @@ CacheModel = cache.NewClient(context.Background(), rdb)
 
 `Set` is the same as `Set`, but just with `Tag` together.
 
+`Get` without `Tag`.
+
 ```gotemplate
-CacheModel.Tag("user_all", "user_list").Set("user_id:1", &proto.User{Id: 1, Nickname: "111"}, time.Hour)
-CacheModel.Tag("user_all").Set("user_id:2", &proto.User{Id: 2, Nickname: "222"}, time.Hour)
-CacheModel.Get("user_id:2")
-CacheModel.Tag("user_list").Flush()
+c.Tag("tag:user:all", "tag:user:1").Set(ctx, "key:user:1", &proto.User{Id: 1, Nickname: "111"})
+c.Tag("tag:user:all", "tag:user:2").Set(ctx, "key:user:2", &proto.User{Id: 2, Nickname: "222"})
+c.Get(ctx, "key:user:1", &proto.User{})
+c.Get(ctx, "key:user:2", &proto.User{})
+c.Tag("tag:user:all").Flush()
 ```
 
 - use redis
@@ -44,8 +51,7 @@ CacheModel.Tag("user_list").Flush()
 All redis command check: https://godoc.org/github.com/go-redis/redis
 
 ```gotemplate
-CacheModel.RedisClient.Set("key", "value", time.Hour).Err()
-CacheModel.RedisClient.Get("key").Result()
-CacheModel.RedisClient.command()...
+c.redis.Set("key", "value", time.Hour).Err()
+c.redis.Get("key").Result()
+c.redis.command()...
 ```
-

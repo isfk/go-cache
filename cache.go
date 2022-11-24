@@ -6,24 +6,40 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/go-redis/redis/v9"
 )
+
+type Options struct {
+	prefix  string
+	expired time.Duration
+}
+
+type Option func(*Options)
 
 // Cache Cache
 type Cache struct {
-	RedisClient        *redis.Client
-	RedisClusterClient *redis.ClusterClient
-	tags               []string
+	redis        *redis.Client
+	redisCluster *redis.ClusterClient
+	tags         []string
+
+	prefix  string
+	expired time.Duration
 }
 
-// RedisDriver RedisDriver
-var RedisDriver *redis.Client
+func WithPrefix(prefix string) Option {
+	return func(o *Options) {
+		o.prefix = prefix
+	}
+}
 
-// RedisClusterDriver RedisClusterDriver
-var RedisClusterDriver *redis.ClusterClient
+func WithExpired(exp time.Duration) Option {
+	return func(o *Options) {
+		o.expired = exp
+	}
+}
 
 // New New
-func New(ctx context.Context, client *redis.Client) *Cache {
+func New(ctx context.Context, client *redis.Client, opts ...Option) *Cache {
 	pong, err := client.Ping(ctx).Result()
 	if err != nil {
 		panic(err)
@@ -31,15 +47,20 @@ func New(ctx context.Context, client *redis.Client) *Cache {
 
 	fmt.Println("redis pong: ", pong)
 
-	RedisDriver = client
+	o := &Options{}
+	for _, opt := range opts {
+		opt(o)
+	}
 
 	return &Cache{
-		RedisClient: RedisDriver,
+		redis:   client,
+		prefix:  o.prefix,
+		expired: o.expired,
 	}
 }
 
-// NewClusterClient NewClusterClient
-func NewClusterClient(ctx context.Context, client *redis.ClusterClient) *Cache {
+// NewCluster NewCluster
+func NewCluster(ctx context.Context, client *redis.ClusterClient) *Cache {
 	pong, err := client.Ping(ctx).Result()
 	if err != nil {
 		panic(err)
@@ -47,10 +68,8 @@ func NewClusterClient(ctx context.Context, client *redis.ClusterClient) *Cache {
 
 	fmt.Println("redis pong: ", pong)
 
-	RedisClusterDriver = client
-
 	return &Cache{
-		RedisClusterClient: RedisClusterDriver,
+		redisCluster: client,
 	}
 }
 
@@ -61,23 +80,27 @@ func (c *Cache) Tag(tag ...string) *Cache {
 }
 
 // Set .Tag().Set()
-func (c *Cache) Set(ctx context.Context, key string, val interface{}, expire time.Duration) error {
+func (c *Cache) Set(ctx context.Context, key string, val interface{}) error {
+	if len(c.prefix) > 0 {
+		key = c.prefix + ":" + key
+	}
+
 	for _, v := range c.tags {
-		err := RedisDriver.SAdd(ctx, v, key).Err()
+		err := c.redis.SAdd(ctx, c.prefix+":"+v, key).Err()
 		if err != nil {
-			fmt.Println("RedisDriver.SAdd err:", err)
+			fmt.Println("c.redis.SAdd err:", err)
 		}
 	}
 
 	value, err := json.Marshal(val)
 	if err != nil {
-		fmt.Println("err:", err)
+		fmt.Println("json.Marshal err:", err)
 		return err
 	}
 
-	err = RedisDriver.Set(ctx, key, string(value), expire).Err()
+	err = c.redis.Set(ctx, key, string(value), c.expired).Err()
 	if err != nil {
-		fmt.Println("RedisDriver.Set err:", err)
+		fmt.Println("c.redis.Set err:", err)
 		return err
 	}
 
@@ -86,12 +109,16 @@ func (c *Cache) Set(ctx context.Context, key string, val interface{}, expire tim
 
 // Get .Get()
 func (c *Cache) Get(ctx context.Context, key string, val interface{}) error {
-	jsonStr, err := RedisDriver.Get(ctx, key).Result()
+	if len(c.prefix) > 0 {
+		key = c.prefix + ":" + key
+	}
+
+	jsonStr, err := c.redis.Get(ctx, key).Result()
 	if err != nil {
 		if err == redis.Nil {
 			return nil
 		}
-		fmt.Println("RedisDriver.Get err:", err)
+		fmt.Println("c.redis.Get err:", err)
 		return err
 	}
 	err = json.Unmarshal([]byte(jsonStr), &val)
@@ -106,24 +133,24 @@ func (c *Cache) Get(ctx context.Context, key string, val interface{}) error {
 
 // Flush .Tag().Flush()
 func (c *Cache) Flush(ctx context.Context) error {
-	for _, key := range c.tags {
-		members, err := RedisDriver.SMembers(ctx, key).Result()
+	for _, v := range c.tags {
+		members, err := c.redis.SMembers(ctx, c.prefix+":"+v).Result()
 		if err != nil {
-			fmt.Println("RedisDriver.SMembers err:", err)
+			fmt.Println("c.redis.SMembers err:", err)
 			return err
 		}
 
 		if len(members) > 0 {
-			err = RedisDriver.Del(ctx, members...).Err()
+			err = c.redis.Del(ctx, members...).Err()
 			if err != nil {
-				fmt.Println("RedisDriver.Del err:", err)
+				fmt.Println("c.redis.Del err:", err)
 				return err
 			}
 		}
 
-		err = RedisDriver.Del(ctx, key).Err()
+		err = c.redis.Del(ctx, c.prefix+":"+v).Err()
 		if err != nil {
-			fmt.Println("RedisDriver.Del err:", err)
+			fmt.Println("c.redis.Del err:", err)
 			return err
 		}
 	}
