@@ -85,22 +85,29 @@ func (c *Cache) Set(ctx context.Context, key string, val interface{}) error {
 		key = c.prefix + ":" + key
 	}
 
-	for _, v := range c.tags {
-		err := c.redis.SAdd(ctx, c.prefix+":"+v, key).Err()
-		if err != nil {
-			fmt.Println("c.redis.SAdd err:", err)
+	_, err := c.redis.TxPipelined(ctx, func(p redis.Pipeliner) error {
+		for _, v := range c.tags {
+			err := p.SAdd(ctx, c.prefix+":"+v, key).Err()
+			if err != nil {
+				fmt.Println(fmt.Errorf("p.SAdd err %v", err))
+				return err
+			}
 		}
-	}
 
-	value, err := json.Marshal(val)
-	if err != nil {
-		fmt.Println("json.Marshal err:", err)
-		return err
-	}
+		value, err := json.Marshal(val)
+		if err != nil {
+			fmt.Println("json.Marshal err:", err)
+			return err
+		}
 
-	err = c.redis.Set(ctx, key, string(value), c.expired).Err()
+		err = p.Set(ctx, key, string(value), c.expired).Err()
+		if err != nil {
+			fmt.Println("p.Set err:", err)
+			return err
+		}
+		return nil
+	})
 	if err != nil {
-		fmt.Println("c.redis.Set err:", err)
 		return err
 	}
 
@@ -133,26 +140,32 @@ func (c *Cache) Get(ctx context.Context, key string, val interface{}) error {
 
 // Flush .Tag().Flush()
 func (c *Cache) Flush(ctx context.Context) error {
-	for _, v := range c.tags {
-		members, err := c.redis.SMembers(ctx, c.prefix+":"+v).Result()
-		if err != nil {
-			fmt.Println("c.redis.SMembers err:", err)
-			return err
-		}
-
-		if len(members) > 0 {
-			err = c.redis.Del(ctx, members...).Err()
+	_, err := c.redis.TxPipelined(ctx, func(p redis.Pipeliner) error {
+		for _, v := range c.tags {
+			members, err := c.redis.SMembers(ctx, c.prefix+":"+v).Result()
 			if err != nil {
-				fmt.Println("c.redis.Del err:", err)
+				fmt.Println("c.redis.SMembers err:", err)
+				return err
+			}
+
+			if len(members) > 0 {
+				err = p.Del(ctx, members...).Err()
+				if err != nil {
+					fmt.Println("p.Del err:", err)
+					return err
+				}
+			}
+
+			err = p.Del(ctx, c.prefix+":"+v).Err()
+			if err != nil {
+				fmt.Println("p.Del err:", err)
 				return err
 			}
 		}
-
-		err = c.redis.Del(ctx, c.prefix+":"+v).Err()
-		if err != nil {
-			fmt.Println("c.redis.Del err:", err)
-			return err
-		}
+		return nil
+	})
+	if err != nil {
+		return err
 	}
 	return nil
 }

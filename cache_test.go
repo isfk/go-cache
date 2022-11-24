@@ -45,7 +45,10 @@ func TestCache(t *testing.T) {
 	}
 
 	data1 := &Data{Name: "jack", Age: 18}
-	err = c.Tag(tags...).Set(context.Background(), key, data1)
+	err = c.Tag([]string{
+		"tag:all",
+		"tag:user:1",
+	}...).Set(context.Background(), key, data1)
 	if err != nil {
 		t.Error(err)
 	}
