@@ -9,8 +9,8 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-// Client Client
-type Client struct {
+// Cache Cache
+type Cache struct {
 	RedisClient        *redis.Client
 	RedisClusterClient *redis.ClusterClient
 	tags               []string
@@ -22,8 +22,8 @@ var RedisDriver *redis.Client
 // RedisClusterDriver RedisClusterDriver
 var RedisClusterDriver *redis.ClusterClient
 
-// NewClient NewClient
-func NewClient(ctx context.Context, client *redis.Client) *Client {
+// New New
+func New(ctx context.Context, client *redis.Client) *Cache {
 	pong, err := client.Ping(ctx).Result()
 	if err != nil {
 		panic(err)
@@ -33,13 +33,13 @@ func NewClient(ctx context.Context, client *redis.Client) *Client {
 
 	RedisDriver = client
 
-	return &Client{
+	return &Cache{
 		RedisClient: RedisDriver,
 	}
 }
 
 // NewClusterClient NewClusterClient
-func NewClusterClient(ctx context.Context, client *redis.ClusterClient) *Client {
+func NewClusterClient(ctx context.Context, client *redis.ClusterClient) *Cache {
 	pong, err := client.Ping(ctx).Result()
 	if err != nil {
 		panic(err)
@@ -49,19 +49,19 @@ func NewClusterClient(ctx context.Context, client *redis.ClusterClient) *Client 
 
 	RedisClusterDriver = client
 
-	return &Client{
+	return &Cache{
 		RedisClusterClient: RedisClusterDriver,
 	}
 }
 
 // Tag .Tag()
-func (c *Client) Tag(tag ...string) *Client {
+func (c *Cache) Tag(tag ...string) *Cache {
 	c.tags = tag
 	return c
 }
 
 // Set .Tag().Set()
-func (c *Client) Set(ctx context.Context, key string, val interface{}, expire time.Duration) error {
+func (c *Cache) Set(ctx context.Context, key string, val interface{}, expire time.Duration) error {
 	for _, v := range c.tags {
 		err := RedisDriver.SAdd(ctx, v, key).Err()
 		if err != nil {
@@ -85,7 +85,7 @@ func (c *Client) Set(ctx context.Context, key string, val interface{}, expire ti
 }
 
 // Get .Get()
-func (c *Client) Get(ctx context.Context, key string, val interface{}) error {
+func (c *Cache) Get(ctx context.Context, key string, val interface{}) error {
 	jsonStr, err := RedisDriver.Get(ctx, key).Result()
 	if err != nil {
 		if err == redis.Nil {
@@ -105,7 +105,7 @@ func (c *Client) Get(ctx context.Context, key string, val interface{}) error {
 }
 
 // Flush .Tag().Flush()
-func (c *Client) Flush(ctx context.Context) error {
+func (c *Cache) Flush(ctx context.Context) error {
 	for _, key := range c.tags {
 		members, err := RedisDriver.SMembers(ctx, key).Result()
 		if err != nil {
