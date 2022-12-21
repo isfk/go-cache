@@ -1,4 +1,4 @@
-module github.com/go-cache/cache/v3
+module github.com/isfk/go-cache/v3
 
 go 1.17
 
