@@ -2,7 +2,7 @@ module github.com/isfk/go-cache/v3
 
 go 1.17
 
-require github.com/go-redis/redis/v9 v9.0.0-rc.1
+require github.com/go-redis/redis/v9 v9.0.2
 
 require (
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
