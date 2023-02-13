@@ -53,7 +53,7 @@ c.Tag([]string{"tag:user:all"}...).Flush(ctx)
 
 - use redis
 
-All redis command check: https://godoc.org/github.com/go-redis/redis/v9
+All redis command check: https://godoc.org/github.com/redis/go-redis/v9
 
 ```gotemplate
 c.redis.Set("key", "value", time.Hour).Err()
