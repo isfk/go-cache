@@ -1,6 +1,6 @@
 # cache
 
-cache based on [go-redis](https://github.com/go-redis/redis)
+cache based on [go-redis](https://github.com/redis/go-redis)
 
 ## Installation
 
