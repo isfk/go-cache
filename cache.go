@@ -79,6 +79,12 @@ func (c *Cache) Tag(tag ...string) *Cache {
 	return c
 }
 
+// Tag .AddTag()
+func (c *Cache) AddTag(tag ...string) *Cache {
+	c.tags = append(c.tags, tag...)
+	return c
+}
+
 // Set .Tag().Set()
 func (c *Cache) Set(ctx context.Context, key string, val interface{}) error {
 	if len(c.prefix) > 0 {
