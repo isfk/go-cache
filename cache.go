@@ -128,16 +128,42 @@ func (c *Cache) Get(ctx context.Context, key string, val interface{}) error {
 
 	jsonStr, err := c.redis.Get(ctx, key).Result()
 	if err != nil {
-		if err == redis.Nil {
-			return nil
-		}
-		fmt.Println("c.redis.Get err:", err)
 		return err
 	}
+
 	err = json.Unmarshal([]byte(jsonStr), &val)
 
 	if err != nil {
 		fmt.Println("json.Unmarshal err:", err)
+		return err
+	}
+
+	return nil
+}
+
+// Set .Tag().Del()
+func (c *Cache) Del(ctx context.Context, key string) error {
+	if len(c.prefix) > 0 {
+		key = c.prefix + ":" + key
+	}
+
+	_, err := c.redis.TxPipelined(ctx, func(p redis.Pipeliner) error {
+		for _, v := range c.tags {
+			err := p.SRem(ctx, c.prefix+":"+v, key).Err()
+			if err != nil {
+				fmt.Println(fmt.Errorf("p.SAdd err %v", err))
+				return err
+			}
+		}
+
+		err := p.Del(ctx, key).Err()
+		if err != nil {
+			fmt.Println("p.Set err:", err)
+			return err
+		}
+		return nil
+	})
+	if err != nil {
 		return err
 	}
 
